@@ -1,0 +1,792 @@
+---
+- name: Configurar servidor web (Nginx)
+  hosts: web
+  become: yes
+  tasks:
+    - name: Actualizar cache de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Instalar Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Habilitar y arrancar Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Crear página de inicio DataExplorer
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>DataExplorer | Servidor Web</title>
+            <style>
+              :root {
+                --bg: #0f172a;
+                --bg-alt: #020617;
+                --card: #0b1220;
+                --accent: #38bdf8;
+                --accent-soft: rgba(56, 189, 248, 0.16);
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --border: #1f2937;
+              }
+
+              * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+              }
+
+              body {
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                  sans-serif;
+                background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+                color: var(--text);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 1.25rem;
+              }
+
+              .shell {
+                max-width: 960px;
+                width: 100%;
+              }
+
+              .card {
+                background: linear-gradient(145deg, var(--bg) 0, var(--bg-alt) 100%);
+                border-radius: 1.5rem;
+                border: 1px solid var(--border);
+                box-shadow:
+                  0 18px 45px rgba(15, 23, 42, 0.7),
+                  0 0 0 1px rgba(15, 23, 42, 0.9);
+                padding: 2.4rem 2rem;
+                position: relative;
+                overflow: hidden;
+              }
+
+              .card::before {
+                content: "";
+                position: absolute;
+                inset: -40%;
+                background:
+                  radial-gradient(circle at 0 0, var(--accent-soft), transparent 60%),
+                  radial-gradient(circle at 100% 100%, rgba(52, 211, 153, 0.08), transparent 55%);
+                opacity: 0.9;
+                pointer-events: none;
+              }
+
+              .card-inner {
+                position: relative;
+                z-index: 1;
+              }
+
+              .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.25rem 0.8rem;
+                border-radius: 999px;
+                background: rgba(15, 23, 42, 0.92);
+                border: 1px solid rgba(56, 189, 248, 0.35);
+                color: var(--accent);
+                font-size: 0.75rem;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                margin-bottom: 1.25rem;
+              }
+
+              .badge-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 999px;
+                background: #22c55e;
+                box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+              }
+
+              .title {
+                font-size: clamp(2.1rem, 4vw, 2.6rem);
+                font-weight: 700;
+                letter-spacing: -0.04em;
+                margin-bottom: 0.7rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+                align-items: baseline;
+              }
+
+              .title span.highlight {
+                background: linear-gradient(120deg, #38bdf8, #a855f7, #22c55e);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+              }
+
+              .subtitle {
+                font-size: 0.95rem;
+                color: var(--muted);
+                max-width: 540px;
+                line-height: 1.6;
+                margin-bottom: 1.8rem;
+              }
+
+              .meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem;
+                margin-bottom: 2rem;
+              }
+
+              .meta-item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.2rem;
+                font-size: 0.8rem;
+                padding: 0.65rem 0.9rem;
+                border-radius: 0.9rem;
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                background: rgba(15, 23, 42, 0.85);
+              }
+
+              .meta-label {
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--muted);
+                font-size: 0.7rem;
+              }
+
+              .meta-value {
+                font-weight: 500;
+                color: var(--text);
+              }
+
+              .grid {
+                display: grid;
+                grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr);
+                gap: 1.8rem;
+                align-items: stretch;
+              }
+
+              .section {
+                background: rgba(15, 23, 42, 0.85);
+                border-radius: 1.1rem;
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                padding: 1.2rem 1.3rem;
+              }
+
+              .section-title {
+                font-size: 0.9rem;
+                text-transform: uppercase;
+                letter-spacing: 0.14em;
+                color: var(--muted);
+                margin-bottom: 0.9rem;
+              }
+
+              .section-list {
+                list-style: none;
+                display: grid;
+                gap: 0.55rem;
+                font-size: 0.9rem;
+              }
+
+              .section-list li {
+                display: flex;
+                align-items: center;
+                gap: 0.55rem;
+              }
+
+              .dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 999px;
+                background: var(--accent);
+                box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+              }
+
+              .pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                font-size: 0.8rem;
+                padding: 0.35rem 0.7rem;
+                border-radius: 999px;
+                background: rgba(15, 23, 42, 0.9);
+                border: 1px solid rgba(148, 163, 184, 0.35);
+                color: var(--muted);
+                margin-right: 0.35rem;
+                margin-bottom: 0.35rem;
+              }
+
+              .pill-indicator {
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                background: #22c55e;
+              }
+
+              .pills {
+                display: flex;
+                flex-wrap: wrap;
+                margin-top: 0.4rem;
+              }
+
+              .footer {
+                margin-top: 2rem;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                font-size: 0.8rem;
+                color: var(--muted);
+                border-top: 1px solid rgba(148, 163, 184, 0.35);
+                padding-top: 0.85rem;
+              }
+
+              .footer-strong {
+                color: var(--text);
+                font-weight: 500;
+              }
+
+              .footer-links {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+              }
+
+              .footer-link {
+                text-decoration: none;
+                color: var(--muted);
+                border-bottom: 1px dashed rgba(148, 163, 184, 0.6);
+              }
+
+              .footer-link:hover {
+                color: var(--accent);
+                border-bottom-color: var(--accent);
+              }
+
+              @media (max-width: 768px) {
+                .card {
+                  padding: 1.9rem 1.5rem;
+                }
+
+                .grid {
+                  grid-template-columns: 1fr;
+                }
+
+                .footer {
+                  flex-direction: column;
+                  align-items: flex-start;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <main class="shell">
+              <section class="card">
+                <div class="card-inner">
+                  <div class="badge">
+                    <span class="badge-dot"></span>
+                    DataExplorer · Entorno de pruebas
+                  </div>
+
+                  <h1 class="title">
+                    <span>Servidor web</span>
+                    <span class="highlight">DataExplorer</span>
+                  </h1>
+
+                  <p class="subtitle">
+                    Este servidor Nginx forma parte del entorno de laboratorio para el proyecto
+                    <strong>DataExplorer</strong>, donde se analizan el despliegue automatizado con
+                    <strong>Vagrant + Ansible</strong> y el monitoreo de servicios con
+                    <strong>Prometheus</strong> y <strong>Grafana</strong>.
+                  </p>
+
+                  <div class="meta">
+                    <div class="meta-item">
+                      <span class="meta-label">Autor</span>
+                      <span class="meta-value">Jorge Andrés Medina</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-label">Servicio</span>
+                      <span class="meta-value">Nginx · Servidor HTTP</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-label">Monitoreo</span>
+                      <span class="meta-value">Prometheus + Grafana (VM monitoring)</span>
+                    </div>
+                  </div>
+
+                  <div class="grid">
+                    <section class="section">
+                      <h2 class="section-title">Descripción del entorno</h2>
+                      <ul class="section-list">
+                        <li>
+                          <span class="dot"></span>
+                          <span>
+                            Esta máquina virtual expone el sitio web en
+                            <strong>http://192.168.56.10</strong> mediante Nginx.
+                          </span>
+                        </li>
+                        <li>
+                          <span class="dot"></span>
+                          <span>
+                            El tráfico HTTP generado por los clientes se utiliza para evaluar
+                            el rendimiento del sistema operativo y del servidor web.
+                          </span>
+                        </li>
+                        <li>
+                          <span class="dot"></span>
+                          <span>
+                            Las métricas del sistema se exportan con
+                            <strong>node_exporter</strong> y son recolectadas por Prometheus.
+                          </span>
+                        </li>
+                        <li>
+                          <span class="dot"></span>
+                          <span>
+                            Grafana consume las métricas de Prometheus y presenta dashboards
+                            con CPU, memoria y tráfico de red en tiempo real.
+                          </span>
+                        </li>
+                      </ul>
+                    </section>
+
+                    <section class="section">
+                      <h2 class="section-title">Tecnologías</h2>
+                      <div class="pills">
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Vagrant · VirtualBox
+                        </div>
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Ansible · Provisioning
+                        </div>
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Nginx · Servidor Web
+                        </div>
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Prometheus · Métricas
+                        </div>
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Grafana · Dashboards
+                        </div>
+                        <div class="pill">
+                          <span class="pill-indicator"></span>
+                          Linux · Sistema Operativo
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <footer class="footer">
+                    <span>
+                      <span class="footer-strong">Estado:</span>
+                      servidor web operativo y listo para pruebas de carga.
+                    </span>
+                    <div class="footer-links">
+                      <span>
+                        Monitoreo disponible en
+                        <span class="footer-strong">http://192.168.56.11:9090</span> (Prometheus) y
+                        <span class="footer-strong">http://192.168.56.11:3000</span> (Grafana).
+                      </span>
+                    </div>
+                  </footer>
+                </div>
+              </section>
+            </main>
+          </body>
+          </html>
+
+
+    # ---------- node_exporter para métricas del servidor ----------
+    - name: Crear usuario node_exporter
+      user:
+        name: node_exporter
+        system: yes
+        shell: /usr/sbin/nologin
+
+    - name: Descargar node_exporter
+      get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz"
+        dest: /tmp/node_exporter.tar.gz
+
+    - name: Extraer node_exporter
+      unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /opt
+        remote_src: yes
+
+    - name: Crear enlace binario node_exporter
+      file:
+        src: /opt/node_exporter-1.8.2.linux-amd64/node_exporter
+        dest: /usr/local/bin/node_exporter
+        state: link
+
+    - name: Crear servicio systemd para node_exporter
+      copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Prometheus Node Exporter
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=node_exporter
+          Group=node_exporter
+          Type=simple
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recargar systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Habilitar y arrancar node_exporter
+      systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+
+
+- name: Configurar Prometheus y Grafana
+  hosts: monitoring
+  become: yes
+  vars:
+    prometheus_version: "2.54.0"
+  tasks:
+    - name: Actualizar cache de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Instalar dependencias (curl, tar, etc.)
+      apt:
+        name:
+          - curl
+          - tar
+          - adduser
+          - libfontconfig1
+        state: present
+
+    # ---------- Prometheus ----------
+    - name: Crear usuario prometheus
+      user:
+        name: prometheus
+        system: yes
+        shell: /usr/sbin/nologin
+
+    - name: Crear directorios para Prometheus
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+      loop:
+        - /etc/prometheus
+        - /var/lib/prometheus
+
+    - name: Descargar Prometheus
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: /tmp/prometheus.tar.gz
+
+    - name: Extraer Prometheus
+      unarchive:
+        src: /tmp/prometheus.tar.gz
+        dest: /tmp
+        remote_src: yes
+        creates: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64"
+
+    - name: Copiar binarios de Prometheus
+      copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+        dest: /usr/local/bin/prometheus
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+        remote_src: yes
+
+    - name: Copiar binario promtool
+      copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool"
+        dest: /usr/local/bin/promtool
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+        remote_src: yes
+
+    - name: Copiar consolas y librerías de consolas
+      copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+        dest: "/etc/prometheus/{{ item }}"
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+        remote_src: yes
+      loop:
+        - consoles
+        - console_libraries
+
+    - name: Crear archivo de configuración de Prometheus
+      # Webserver en 192.168.56.10:9100 (node_exporter)
+      copy:
+        dest: /etc/prometheus/prometheus.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+        content: |
+          global:
+            scrape_interval: 5s
+
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+
+            - job_name: 'web-node'
+              static_configs:
+                - targets: ['192.168.56.10:9100']
+
+    - name: Crear servicio systemd para Prometheus
+      copy:
+        dest: /etc/systemd/system/prometheus.service
+        content: |
+          [Unit]
+          Description=Prometheus
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=prometheus
+          Group=prometheus
+          Type=simple
+          ExecStart=/usr/local/bin/prometheus \
+            --config.file=/etc/prometheus/prometheus.yml \
+            --storage.tsdb.path=/var/lib/prometheus \
+            --web.console.templates=/etc/prometheus/consoles \
+            --web.console.libraries=/etc/prometheus/console_libraries
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recargar systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Habilitar y arrancar Prometheus
+      systemd:
+        name: prometheus
+        state: started
+        enabled: yes
+
+    # ---------- Grafana ----------
+
+    - name: Añadir clave GPG de Grafana
+      apt_key:
+        url: https://packages.grafana.com/gpg.key
+        state: present
+
+    - name: Añadir repo de Grafana
+      apt_repository:
+        repo: "deb https://packages.grafana.com/oss/deb stable main"
+        state: present
+        filename: grafana
+        update_cache: no
+
+    - name: Instalar Grafana
+      apt:
+        name: grafana
+        state: present
+        update_cache: yes
+
+    - name: Habilitar Grafana (sin reiniciar aún)
+      systemd:
+        name: grafana-server
+        enabled: yes
+        state: started
+
+    # --- PROVISIONING AUTOMÁTICO ---
+
+    - name: Crear directorio de datasources
+      file:
+        path: /etc/grafana/provisioning/datasources
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Crear directorio de dashboards provisioning
+      file:
+        path: /etc/grafana/provisioning/dashboards
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Crear directorio para dashboards JSON
+      file:
+        path: /var/lib/grafana/dashboards
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: "0755"
+
+    - name: Configurar datasource de Prometheus
+      copy:
+        dest: /etc/grafana/provisioning/datasources/datasource.yml
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          apiVersion: 1
+
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: http://localhost:9090
+              isDefault: true
+              editable: true
+
+    - name: Configurar provisioning de dashboards
+      copy:
+        dest: /etc/grafana/provisioning/dashboards/dashboard.yml
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          apiVersion: 1
+
+          providers:
+            - name: 'DataExplorer dashboards'
+              orgId: 1
+              folder: ''
+              type: file
+              disableDeletion: false
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards
+
+    - name: Crear dashboard JSON DataExplorer
+      copy:
+        dest: /var/lib/grafana/dashboards/dataexplorer-node.json
+        owner: grafana
+        group: grafana
+        mode: "0644"
+        content: |
+          {
+            "id": null,
+            "uid": "dataexplorer-node",
+            "title": "DataExplorer - Node Exporter",
+            "tags": ["dataexplorer", "node_exporter"],
+            "timezone": "browser",
+            "schemaVersion": 36,
+            "version": 1,
+            "refresh": "5s",
+            "time": {
+              "from": "now-15m",
+              "to": "now"
+            },
+            "templating": {
+              "list": [
+                {
+                  "type": "query",
+                  "name": "instance",
+                  "label": "Instancia",
+                  "datasource": "Prometheus",
+                  "query": "label_values(up, instance)",
+                  "refresh": 1,
+                  "includeAll": false,
+                  "multi": false,
+                  "current": {
+                    "selected": true,
+                    "text": "192.168.56.10:9100",
+                    "value": "192.168.56.10:9100"
+                  }
+                }
+              ]
+            },
+            "panels": [
+              {
+                "type": "timeseries",
+                "title": "Uso de CPU (%)",
+                "id": 1,
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 0,
+                  "y": 0
+                },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{instance=~\"$instance\",mode=\"idle\"}[5m])) * 100)"
+                  }
+                ]
+              },
+              {
+                "type": "timeseries",
+                "title": "Uso de Memoria (%)",
+                "id": 2,
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 12,
+                  "y": 0
+                },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "(1 - (node_memory_MemAvailable_bytes{instance=~\"$instance\"} / node_memory_MemTotal_bytes{instance=~\"$instance\"})) * 100"
+                  }
+                ]
+              },
+              {
+                "type": "timeseries",
+                "title": "Tráfico de red - RX/TX (bytes/s)",
+                "id": 3,
+                "gridPos": {
+                  "h": 9,
+                  "w": 24,
+                  "x": 0,
+                  "y": 8
+                },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum by (instance) (rate(node_network_receive_bytes_total{instance=~\"$instance\",device!=\"lo\"}[5m]))",
+                    "legendFormat": "RX"
+                  },
+                  {
+                    "refId": "B",
+                    "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{instance=~\"$instance\",device!=\"lo\"}[5m]))",
+                    "legendFormat": "TX"
+                  }
+                ]
+              }
+            ]
+          }
+
+    - name: Reiniciar Grafana para cargar datasource y dashboard
+      systemd:
+        name: grafana-server
+        state: restarted
+        enabled: yes
