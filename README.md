@@ -46,6 +46,13 @@ ansible-playbook -i inventory.ini site.yml
 ```
 ./scripts/load-test.sh
 ```
+### 6.1 Pruebas de carga rapidas
+Se pueden hacer pruebas rápidas cambiando los parámetros sin editar el script ejectando por ejemplo:
+```
+ab -n 10000 -c 200 http://192.168.56.10/
+```
+10,000 peticiones con 200 usuarios concurrentes, cambiar estos valores cambiara la prueba de carga
+
 
 ## Estructura del proyecto
 - `Vagrantfile` → define las 2 VMs
@@ -55,4 +62,4 @@ ansible-playbook -i inventory.ini site.yml
 - `web` y `monitoring` → máquinas virtuales creadas con Vagrant
 
 ## Autor
-Jorge Andrés Medina
+Jorge Andrés Medina Urrutia
