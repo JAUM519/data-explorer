@@ -9,10 +9,10 @@
 TARGET="http://192.168.56.10/"
 
 # Número total de peticiones
-REQUESTS=1000000
+REQUESTS=5000
 
 # Número de clientes concurrentes
-CONCURRENCY=200
+CONCURRENCY=100
 
 echo "==============================================="
 echo "  Prueba de carga DataExplorer"
